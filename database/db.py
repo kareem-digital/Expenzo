@@ -52,7 +52,7 @@ def seed_db():
         password_hash = generate_password_hash("demo123")
         cursor = conn.execute(
             "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
-            ("Demo User", "demo@spendly.com", password_hash),
+            ("Demo User", "demo@expenzo.com", password_hash),
         )
         user_id = cursor.lastrowid
 
@@ -94,6 +94,17 @@ def create_user(name, email, password):
         )
         conn.commit()
         return cursor.lastrowid
+    finally:
+        conn.close()
+
+
+def get_user_by_email(email):
+    conn = get_db()
+    try:
+        return conn.execute(
+            "SELECT * FROM users WHERE email = ?",
+            (email,),
+        ).fetchone()
     finally:
         conn.close()
 
