@@ -21,7 +21,7 @@ def landing():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if session.get("user_id"):
-        return redirect(url_for("landing"))
+        return redirect(url_for("profile"))
 
     if request.method == "GET":
         return render_template("register.html")
@@ -55,7 +55,7 @@ def register():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if session.get("user_id"):
-        return redirect(url_for("landing"))
+        return redirect(url_for("profile"))
 
     if request.method == "GET":
         return render_template("login.html")
@@ -78,7 +78,7 @@ def login():
 
     session["user_id"] = user["id"]
     flash("Signed in successfully.", "success")
-    return redirect(url_for("landing"))
+    return redirect(url_for("profile"))
 
 
 @app.route("/logout")
@@ -104,7 +104,47 @@ def privacy():
 
 @app.route("/profile")
 def profile():
-    return "Profile page — coming in Step 4"
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    user = {
+        "name": "Demo User",
+        "email": "demo@expenzo.com",
+        "initials": "DU",
+        "member_since": "January 2026",
+    }
+
+    stats = [
+        {"label": "Total spent", "value": "₹5,330.50", "delta": "this month", "delta_style": "muted"},
+        {"label": "Transactions", "value": "8", "delta": "this month", "delta_style": "muted"},
+        {"label": "Top category", "value": "Shopping", "delta": "₹1,500.00", "delta_style": "up"},
+    ]
+
+    transactions = [
+        {"date": "2026-01-23", "description": "Weekly grocery shopping", "category": "Food", "category_slug": "food", "amount": "850.00"},
+        {"date": "2026-01-20", "description": "Miscellaneous expense", "category": "Other", "category_slug": "other", "amount": "300.00"},
+        {"date": "2026-01-17", "description": "Clothing purchase", "category": "Shopping", "category_slug": "shopping", "amount": "1,500.00"},
+        {"date": "2026-01-14", "description": "Movie tickets", "category": "Entertainment", "category_slug": "entertainment", "amount": "400.00"},
+        {"date": "2026-01-11", "description": "Pharmacy purchase", "category": "Health", "category_slug": "health", "amount": "650.00"},
+    ]
+
+    categories = [
+        {"name": "Shopping", "slug": "shopping", "total": "1,500.00", "percent": 28},
+        {"name": "Bills", "slug": "bills", "total": "1,200.00", "percent": 23},
+        {"name": "Food", "slug": "food", "total": "1,100.00", "percent": 21},
+        {"name": "Health", "slug": "health", "total": "650.00", "percent": 12},
+        {"name": "Entertainment", "slug": "entertainment", "total": "400.00", "percent": 8},
+        {"name": "Transport", "slug": "transport", "total": "180.50", "percent": 4},
+        {"name": "Other", "slug": "other", "total": "300.00", "percent": 4},
+    ]
+
+    return render_template(
+        "profile.html",
+        user=user,
+        stats=stats,
+        transactions=transactions,
+        categories=categories,
+    )
 
 
 @app.route("/expenses/add")

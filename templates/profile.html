@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Your profile — Expenzo{% endblock %}
+
+{% block content %}
+
+<section class="profile-section">
+
+    <div class="profile-card">
+        <div class="profile-avatar">{{ user.initials }}</div>
+        <div>
+            <h1 class="profile-name">{{ user.name }}</h1>
+            <p class="profile-email">{{ user.email }}</p>
+            <p class="profile-since">Member since {{ user.member_since }}</p>
+        </div>
+    </div>
+
+    <div class="profile-stats">
+        {% for stat in stats %}
+        <div class="profile-stat-card">
+            <span class="profile-stat-label">{{ stat.label }}</span>
+            <span class="profile-stat-value">{{ stat.value }}</span>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="profile-columns">
+
+        <div class="profile-panel">
+            <h2 class="profile-panel-title">Recent Transactions</h2>
+            <div class="profile-table-wrap">
+                <table class="profile-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th class="col-amount">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tx in transactions %}
+                        <tr>
+                            <td>{{ tx.date }}</td>
+                            <td>{{ tx.description }}</td>
+                            <td><span class="badge badge-{{ tx.category_slug }}">{{ tx.category }}</span></td>
+                            <td class="col-amount">₹{{ tx.amount }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="profile-panel">
+            <h2 class="profile-panel-title">By Category</h2>
+            <div class="profile-bars">
+                {% for cat in categories %}
+                <div class="profile-bar-item">
+                    <div class="profile-bar-row">
+                        <span class="profile-bar-label">{{ cat.name }}</span>
+                        <span class="profile-bar-amount">₹{{ cat.total }}</span>
+                    </div>
+                    <div class="bar-track bar-track-thin">
+                        <div class="bar-fill bar-fill-{{ cat.slug }}" style="width: {{ cat.percent }}%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+</section>
+
+{% endblock %}
