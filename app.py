@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime
 
 from flask import Flask, render_template, request, redirect, url_for, flash, abort, session
 from werkzeug.security import check_password_hash
@@ -108,6 +109,39 @@ def privacy():
 
 
 # ------------------------------------------------------------------ #
+# Profile filter helpers                                              #
+# ------------------------------------------------------------------ #
+
+def _preset_ranges():
+    today = datetime.today().date()
+    this_month_start = today.replace(day=1)
+
+    def months_ago(base, months):
+        year, month = base.year, base.month - months
+        while month <= 0:
+            month += 12
+            year -= 1
+        return base.replace(year=year, month=month, day=1)
+
+    return {
+        "this_month": (this_month_start.isoformat(), today.isoformat()),
+        "last_3_months": (months_ago(today, 2).isoformat(), today.isoformat()),
+        "last_6_months": (months_ago(today, 5).isoformat(), today.isoformat()),
+        "all_time": (None, None),
+    }
+
+
+def _parse_date(value):
+    if not value:
+        return None
+    try:
+        datetime.strptime(value, "%Y-%m-%d")
+    except ValueError:
+        return None
+    return value
+
+
+# ------------------------------------------------------------------ #
 # Placeholder routes — students will implement these                  #
 # ------------------------------------------------------------------ #
 
@@ -130,7 +164,25 @@ def profile():
         "member_since": profile_user["member_since"],
     }
 
-    summary = profile_queries.get_summary_stats(user_id)
+    date_from = _parse_date(request.args.get("date_from"))
+    date_to = _parse_date(request.args.get("date_to"))
+
+    if date_from and date_to and date_from > date_to:
+        flash("Start date must be before end date.", "error")
+        date_from = None
+        date_to = None
+
+    presets = _preset_ranges()
+    if date_from is None and date_to is None:
+        active_preset = "all_time"
+    else:
+        active_preset = "custom"
+        for name, (preset_from, preset_to) in presets.items():
+            if name != "all_time" and (preset_from, preset_to) == (date_from, date_to):
+                active_preset = name
+                break
+
+    summary = profile_queries.get_summary_stats(user_id, date_from=date_from, date_to=date_to)
     stats = [
         {"label": "Total spent", "value": f"₹{summary['total_spent']:,.2f}"},
         {"label": "Transactions", "value": str(summary["transaction_count"])},
@@ -145,7 +197,7 @@ def profile():
             "category_slug": tx["category"].lower(),
             "amount": f"{tx['amount']:,.2f}",
         }
-        for tx in profile_queries.get_recent_transactions(user_id, limit=10)
+        for tx in profile_queries.get_recent_transactions(user_id, limit=10, date_from=date_from, date_to=date_to)
     ]
 
     categories = [
@@ -155,7 +207,7 @@ def profile():
             "total": f"{cat['amount']:,.2f}",
             "percent": cat["pct"],
         }
-        for cat in profile_queries.get_category_breakdown(user_id)
+        for cat in profile_queries.get_category_breakdown(user_id, date_from=date_from, date_to=date_to)
     ]
 
     return render_template(
@@ -164,6 +216,10 @@ def profile():
         stats=stats,
         transactions=transactions,
         categories=categories,
+        active_preset=active_preset,
+        date_from=date_from,
+        date_to=date_to,
+        presets=presets,
     )
 
 
