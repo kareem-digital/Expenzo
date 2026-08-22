@@ -885,6 +885,16 @@ a { color: inherit; text-decoration: none; }
     margin-bottom: 1.25rem;
 }
 
+.profile-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.profile-panel-header .profile-panel-title { margin-bottom: 0; }
+
 .profile-table-wrap { overflow-x: auto; }
 
 .profile-table {
