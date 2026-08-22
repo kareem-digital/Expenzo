@@ -4,6 +4,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, abo
 from werkzeug.security import check_password_hash
 
 from database.db import init_db, seed_db, create_user, get_user_by_email, get_user_by_id
+from database import queries as profile_queries
 
 app = Flask(__name__)
 app.secret_key = "dev-secret-key-change-in-production"
@@ -112,38 +113,49 @@ def privacy():
 
 @app.route("/profile")
 def profile():
-    if not session.get("user_id"):
+    user_id = session.get("user_id")
+    if not user_id:
         return redirect(url_for("login"))
 
+    profile_user = profile_queries.get_user_by_id(user_id)
+    if profile_user is None:
+        session.clear()
+        return redirect(url_for("login"))
+
+    initials = "".join(part[0].upper() for part in profile_user["name"].split()[:2])
     user = {
-        "name": "Demo User",
-        "email": "demo@expenzo.com",
-        "initials": "DU",
-        "member_since": "January 2026",
+        "name": profile_user["name"],
+        "email": profile_user["email"],
+        "initials": initials,
+        "member_since": profile_user["member_since"],
     }
 
+    summary = profile_queries.get_summary_stats(user_id)
     stats = [
-        {"label": "Total spent", "value": "₹5,330.50", "delta": "this month", "delta_style": "muted"},
-        {"label": "Transactions", "value": "8", "delta": "this month", "delta_style": "muted"},
-        {"label": "Top category", "value": "Shopping", "delta": "₹1,500.00", "delta_style": "up"},
+        {"label": "Total spent", "value": f"₹{summary['total_spent']:,.2f}"},
+        {"label": "Transactions", "value": str(summary["transaction_count"])},
+        {"label": "Top category", "value": summary["top_category"]},
     ]
 
     transactions = [
-        {"date": "2026-01-23", "description": "Weekly grocery shopping", "category": "Food", "category_slug": "food", "amount": "850.00"},
-        {"date": "2026-01-20", "description": "Miscellaneous expense", "category": "Other", "category_slug": "other", "amount": "300.00"},
-        {"date": "2026-01-17", "description": "Clothing purchase", "category": "Shopping", "category_slug": "shopping", "amount": "1,500.00"},
-        {"date": "2026-01-14", "description": "Movie tickets", "category": "Entertainment", "category_slug": "entertainment", "amount": "400.00"},
-        {"date": "2026-01-11", "description": "Pharmacy purchase", "category": "Health", "category_slug": "health", "amount": "650.00"},
+        {
+            "date": tx["date"],
+            "description": tx["description"],
+            "category": tx["category"],
+            "category_slug": tx["category"].lower(),
+            "amount": f"{tx['amount']:,.2f}",
+        }
+        for tx in profile_queries.get_recent_transactions(user_id, limit=10)
     ]
 
     categories = [
-        {"name": "Shopping", "slug": "shopping", "total": "1,500.00", "percent": 28},
-        {"name": "Bills", "slug": "bills", "total": "1,200.00", "percent": 23},
-        {"name": "Food", "slug": "food", "total": "1,100.00", "percent": 21},
-        {"name": "Health", "slug": "health", "total": "650.00", "percent": 12},
-        {"name": "Entertainment", "slug": "entertainment", "total": "400.00", "percent": 8},
-        {"name": "Transport", "slug": "transport", "total": "180.50", "percent": 4},
-        {"name": "Other", "slug": "other", "total": "300.00", "percent": 4},
+        {
+            "name": cat["name"],
+            "slug": cat["name"].lower(),
+            "total": f"{cat['amount']:,.2f}",
+            "percent": cat["pct"],
+        }
+        for cat in profile_queries.get_category_breakdown(user_id)
     ]
 
     return render_template(
