@@ -3,10 +3,18 @@ import sqlite3
 from flask import Flask, render_template, request, redirect, url_for, flash, abort, session
 from werkzeug.security import check_password_hash
 
-from database.db import init_db, seed_db, create_user, get_user_by_email
+from database.db import init_db, seed_db, create_user, get_user_by_email, get_user_by_id
 
 app = Flask(__name__)
 app.secret_key = "dev-secret-key-change-in-production"
+
+
+@app.context_processor
+def inject_current_user():
+    user_id = session.get("user_id")
+    if not user_id:
+        return {"current_user": None}
+    return {"current_user": get_user_by_id(user_id)}
 
 
 # ------------------------------------------------------------------ #
